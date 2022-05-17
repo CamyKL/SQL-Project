@@ -1,0 +1,84 @@
+-Query 1 : How many films are categorized as action and animation-
+
+
+WITH t1 AS
+(SELECT COUNT(f.film_id) AS action,
+1 AS joiner
+FROM film f
+JOIN film_category fc ON f.film_id = fc.film_id
+JOIN category c ON fc.category_id = c.category_id
+WHERE c.name = 'Action'
+GROUP BY c),
+t2 AS
+(SELECT COUNT(f.film_id) AS animation,
+1 AS joiner
+FROM film f
+JOIN film_category fc ON f.film_id = fc.film_id
+JOIN category c ON fc.category_id = c.category_id
+WHERE c.name = 'Animation'
+GROUP BY c)
+SELECT action,
+animation
+FROM t1
+JOIN t2 ON t1.joiner = t2.joiner;
+
+
+-Query 2:  Inventory Cost Calculation-
+
+
+SELECT AVG (rental_duration), rental_rate,
+replacement_cost,
+total_1 + total_2 AS inventory_cost
+FROM
+(SELECT f.film_id,
+rental_duration,
+rental_rate,
+replacement_cost,
+(replacement_cost * rental_duration) AS total_1,
+(rental_rate * replacement_cost) AS total_2
+FROM film f
+JOIN inventory i ON i.film_id = f.film_id) t
+WHERE rental_duration > 6
+GROUP BY t.rental_rate,
+t.replacement_cost,
+t.total_1,
+t.total_2
+
+
+-Query 3:  The first 10 customers who paid after January 2017-
+
+
+SELECT c.first_name || ' ' || c.last_name AS customer_name,
+payment_date,
+payment_id,
+SUM(amount) OVER (PARTITION BY c.first_name
+ORDER BY payment_date) AS total_amount
+FROM payment p
+JOIN customer c ON c.customer_id = p.customer_id
+WHERE payment_date <'2017-01-01'
+GROUP BY payment_date,
+c.first_name,
+c.last_name,
+p.payment_id
+ORDER BY payment_date ASC
+LIMIT 10;
+
+
+-Query 4: Who are the top ten actors with films longer than 181 minutes?-
+
+
+SELECT fa.actor_id,
+f.title,
+a.first_name|| ' ' || a.last_name AS actor_name,
+MAX(f.length)
+FROM film_actor fa
+JOIN film f ON f.film_id = fa.film_id
+JOIN actor a ON fa.actor_id = a.actor_id
+WHERE f.length > 181
+GROUP BY fa.actor_id,
+f.title,
+a.first_name,
+a.last_name,
+f.length
+ORDER BY f.length
+LIMIT 10;
